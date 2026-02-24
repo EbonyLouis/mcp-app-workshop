@@ -248,7 +248,6 @@
         this.requestId = 0;
         this.initialized = false;
         this.hostContext = null;
-        this.toolInput = null;
         
         // Listen for messages from the host (goose)
         window.addEventListener('message', (e) => this.handleMessage(e));
@@ -261,8 +260,9 @@
         try {
           // Request initialization from host
           const result = await this.request('ui/initialize', {});
+          console.log('Initialize result:', JSON.stringify(result, null, 2));
+          
           this.hostContext = result.hostContext;
-          this.toolInput = result.toolInput;
           this.initialized = true;
           
           // Apply theme if available
@@ -273,9 +273,11 @@
           // Notify host that we're initialized
           this.notify('ui/notifications/initialized', {});
           
-          // Render the code from tool input
-          if (this.toolInput?.arguments) {
-            renderCode(this.toolInput.arguments);
+          // Tool input comes via ui/notifications/tool-input notification
+          // OR it might be in the initialize result - check both places
+          if (result.toolInput?.arguments) {
+            console.log('Got toolInput from initialize');
+            this.onToolInput(result.toolInput);
           }
           
           // Report our initial size
@@ -286,9 +288,20 @@
         }
       }
       
+      // Handle tool input - called when we receive tool arguments
+      onToolInput(toolInput) {
+        console.log('onToolInput:', JSON.stringify(toolInput, null, 2));
+        const args = toolInput.arguments || toolInput.params?.arguments || toolInput;
+        if (args.code !== undefined) {
+          renderCode(args);
+        }
+      }
+      
       handleMessage(event) {
         const data = event.data;
         if (!data || typeof data !== 'object') return;
+        
+        console.log('Received message:', JSON.stringify(data, null, 2));
         
         // Handle responses to our requests
         if ('id' in data && this.pendingRequests.has(data.id)) {
@@ -296,6 +309,12 @@
           this.pendingRequests.delete(data.id);
           data.error ? reject(new Error(data.error.message)) : resolve(data.result);
           return;
+        }
+        
+        // Handle tool-input notification - this is how we receive the tool arguments!
+        if (data.method === 'ui/notifications/tool-input') {
+          console.log('Received tool-input notification');
+          this.onToolInput(data.params);
         }
         
         // Handle host-context-changed notifications
@@ -334,7 +353,8 @@
       }
       
       async sendMessageToChat(text) {
-        return this.request('ui/message', { content: { type: 'text', text } });
+        // content must be an array of ContentBlock
+        return this.request('ui/message', { content: [{ type: 'text', text }] });
       }
     }
     
@@ -343,23 +363,25 @@
     
     // Store the current code
     let currentCode = '';
+    let currentLanguage = 'code';
     
     // ==========================================================================
     // Code Rendering
     // ==========================================================================
     function renderCode({ code, language, title }) {
       currentCode = code || '';
+      currentLanguage = language || 'code';
       const lines = currentCode.split('\n');
       
       // Update header
       document.getElementById('title').textContent = title || 'Code Snippet';
-      document.getElementById('language').textContent = language || 'code';
+      document.getElementById('language').textContent = currentLanguage;
       
       // Generate line numbers
       const lineNumbers = lines.map((_, i) => i + 1).join('\n');
       
       // Basic syntax highlighting
-      const highlighted = highlightSyntax(currentCode, language);
+      const highlighted = highlightSyntax(currentCode, currentLanguage);
       
       // Render
       document.getElementById('codeWrapper').innerHTML = `
@@ -415,18 +437,47 @@
     // ==========================================================================
     // Actions
     // ==========================================================================
-    async function copyCode() {
+    function copyCode() {
+      // Use a fallback for clipboard API
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(currentCode)
+          .then(() => showToast('Copied to clipboard!', 'success'))
+          .catch(() => fallbackCopy());
+      } else {
+        fallbackCopy();
+      }
+    }
+    
+    function fallbackCopy() {
+      // Fallback using textarea
+      const textarea = document.createElement('textarea');
+      textarea.value = currentCode;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
       try {
-        await navigator.clipboard.writeText(currentCode);
+        document.execCommand('copy');
         showToast('Copied to clipboard!', 'success');
       } catch (err) {
         showToast('Failed to copy', 'error');
       }
+      document.body.removeChild(textarea);
     }
     
     async function insertInChat() {
-      const language = document.getElementById('language').textContent;
-      const message = `Can you explain this ${language} code?\n\n\`\`\`${language}\n${currentCode}\n\`\`\``;
+      if (!currentCode) {
+        showToast('No code to discuss', 'error');
+        return;
+      }
+      
+      // Ask goose to explain the code using the explain_code tool
+      // This will render a step-by-step walkthrough UI
+      const message = `Please explain this ${currentLanguage} code step-by-step using the explain_code tool. Break it down into logical sections, explaining what each part does and why.
+
+\`\`\`${currentLanguage}
+${currentCode}
+\`\`\``;
       
       try {
         await mcpApp.sendMessageToChat(message);

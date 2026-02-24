@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Code Explainer</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 16px;
+      min-height: 100vh;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    
+    body.light { background: #f5f5f7; color: #1d1d1f; }
+    body.dark { background: #1d1d1f; color: #f5f5f7; }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    
+    body.light .container { background: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    body.dark .container { background: #2d2d2f; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+    
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid;
+    }
+    
+    body.light .header { border-color: #e5e5e7; background: #fafafa; }
+    body.dark .header { border-color: #3d3d3f; background: #252527; }
+    
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .header h1 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    
+    .language-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+    
+    body.light .language-badge { background: #e8f0fe; color: #1a73e8; }
+    body.dark .language-badge { background: #1a3a5c; color: #8ab4f8; }
+    
+    .step-indicator {
+      font-size: 13px;
+      font-weight: 500;
+      padding: 4px 12px;
+      border-radius: 12px;
+    }
+    
+    body.light .step-indicator { background: #f0f0f0; color: #666; }
+    body.dark .step-indicator { background: #3d3d3f; color: #aaa; }
+    
+    /* Summary */
+    .summary {
+      padding: 12px 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      border-bottom: 1px solid;
+    }
+    
+    body.light .summary { background: #f0f7ff; border-color: #e5e5e7; color: #1a73e8; }
+    body.dark .summary { background: #1a2a3a; border-color: #3d3d3f; color: #8ab4f8; }
+    
+    /* Code area */
+    .code-wrapper {
+      position: relative;
+      border-bottom: 1px solid;
+    }
+    
+    body.light .code-wrapper { border-color: #e5e5e7; }
+    body.dark .code-wrapper { border-color: #3d3d3f; }
+    
+    .line-numbers {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 40px;
+      padding: 12px 8px;
+      text-align: right;
+      font-family: 'SF Mono', 'Fira Code', Monaco, monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      user-select: none;
+    }
+    
+    body.light .line-numbers { background: #f8f8f8; color: #999; border-right: 1px solid #e5e5e7; }
+    body.dark .line-numbers { background: #252527; color: #666; border-right: 1px solid #3d3d3f; }
+    
+    .code-content {
+      margin-left: 40px;
+      padding: 12px;
+      overflow-x: auto;
+    }
+    
+    .code-line {
+      font-family: 'SF Mono', 'Fira Code', Monaco, monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      white-space: pre;
+      padding: 0 4px;
+      margin: 0 -4px;
+      border-radius: 3px;
+      transition: background-color 0.2s;
+    }
+    
+    body.light .code-line { color: #1d1d1f; }
+    body.dark .code-line { color: #e5e5e7; }
+    
+    .code-line.highlighted {
+      background: #fff3cd;
+      border-left: 3px solid #ffc107;
+      padding-left: 8px;
+      margin-left: -7px;
+    }
+    
+    body.dark .code-line.highlighted {
+      background: #3d3520;
+      border-left-color: #ffc107;
+    }
+    
+    /* Syntax highlighting */
+    .token-keyword { color: #d73a49; }
+    .token-string { color: #22863a; }
+    .token-comment { color: #6a737d; font-style: italic; }
+    .token-function { color: #6f42c1; }
+    .token-number { color: #005cc5; }
+    
+    body.dark .token-keyword { color: #ff7b72; }
+    body.dark .token-string { color: #a5d6ff; }
+    body.dark .token-comment { color: #8b949e; }
+    body.dark .token-function { color: #d2a8ff; }
+    body.dark .token-number { color: #79c0ff; }
+    
+    /* Explanation panel */
+    .explanation-panel {
+      padding: 16px;
+    }
+    
+    .step-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    
+    .step-title::before {
+      content: "🎯";
+    }
+    
+    .step-lines {
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+    
+    body.light .step-lines { background: #fff3cd; color: #856404; }
+    body.dark .step-lines { background: #3d3520; color: #ffc107; }
+    
+    .step-explanation {
+      font-size: 14px;
+      line-height: 1.6;
+      margin-top: 8px;
+    }
+    
+    body.light .step-explanation { color: #444; }
+    body.dark .step-explanation { color: #ccc; }
+    
+    /* Navigation */
+    .navigation {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-top: 1px solid;
+    }
+    
+    body.light .navigation { border-color: #e5e5e7; background: #fafafa; }
+    body.dark .navigation { border-color: #3d3d3f; background: #252527; }
+    
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      font-size: 13px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    
+    body.light .nav-btn { background: #f0f0f0; color: #333; }
+    body.dark .nav-btn { background: #3d3d3f; color: #e5e5e7; }
+    
+    .nav-btn:hover:not(:disabled) { opacity: 0.8; }
+    .nav-btn:active:not(:disabled) { transform: scale(0.98); }
+    .nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    
+    .nav-btn.primary {
+      background: #0071e3 !important;
+      color: white !important;
+    }
+    
+    .progress-dots {
+      display: flex;
+      gap: 6px;
+    }
+    
+    .progress-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    body.light .progress-dot { background: #ddd; }
+    body.dark .progress-dot { background: #555; }
+    
+    .progress-dot.active {
+      background: #0071e3;
+      transform: scale(1.2);
+    }
+    
+    .progress-dot:hover:not(.active) {
+      background: #999;
+    }
+    
+    /* Loading state */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px;
+      color: #666;
+    }
+    
+    .loading::after {
+      content: "";
+      width: 24px;
+      height: 24px;
+      margin-left: 12px;
+      border: 2px solid #ddd;
+      border-top-color: #0071e3;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 1000;
+    }
+    
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+    
+    .toast.success { background: #34c759; color: white; }
+    .toast.error { background: #ff3b30; color: white; }
+  </style>
+</head>
+<body class="light">
+  <div class="container">
+    <div class="header">
+      <div class="header-left">
+        <h1 id="title">Code Explanation</h1>
+        <span class="language-badge" id="language">code</span>
+      </div>
+      <span class="step-indicator" id="stepIndicator">Step 1 of 1</span>
+    </div>
+    
+    <div class="summary" id="summary">Loading explanation...</div>
+    
+    <div class="code-wrapper">
+      <div class="line-numbers" id="lineNumbers"></div>
+      <div class="code-content" id="codeContent">
+        <div class="loading">Loading</div>
+      </div>
+    </div>
+    
+    <div class="explanation-panel" id="explanationPanel">
+      <div class="step-title">
+        <span id="stepTitle">Loading...</span>
+        <span class="step-lines" id="stepLines">Lines 1-1</span>
+      </div>
+      <div class="step-explanation" id="stepExplanation">
+        Loading explanation...
+      </div>
+    </div>
+    
+    <div class="navigation">
+      <button class="nav-btn" id="prevBtn" onclick="prevStep()" disabled>
+        ◀ Previous
+      </button>
+      <div class="progress-dots" id="progressDots"></div>
+      <button class="nav-btn primary" id="nextBtn" onclick="nextStep()">
+        Next ▶
+      </button>
+    </div>
+  </div>
+  
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ==========================================================================
+    // MCP App Client
+    // ==========================================================================
+    class McpAppClient {
+      constructor() {
+        this.pendingRequests = new Map();
+        this.requestId = 0;
+        this.initialized = false;
+        this.hostContext = null;
+        
+        window.addEventListener('message', (e) => this.handleMessage(e));
+        this.initialize();
+      }
+      
+      async initialize() {
+        try {
+          const result = await this.request('ui/initialize', {});
+          console.log('Initialize result:', JSON.stringify(result, null, 2));
+          
+          this.hostContext = result.hostContext;
+          this.initialized = true;
+          
+          if (this.hostContext?.theme) {
+            this.applyTheme(this.hostContext.theme);
+          }
+          
+          this.notify('ui/notifications/initialized', {});
+          
+          if (result.toolInput?.arguments) {
+            this.onToolInput(result.toolInput);
+          }
+          
+          this.reportSize();
+        } catch (error) {
+          console.error('Failed to initialize MCP App:', error);
+          showToast('Failed to initialize', 'error');
+        }
+      }
+      
+      onToolInput(toolInput) {
+        console.log('onToolInput:', JSON.stringify(toolInput, null, 2));
+        const args = toolInput.arguments || toolInput.params?.arguments || toolInput;
+        if (args.code !== undefined && args.steps !== undefined) {
+          renderExplanation(args);
+        }
+      }
+      
+      handleMessage(event) {
+        const data = event.data;
+        if (!data || typeof data !== 'object') return;
+        
+        console.log('Received message:', JSON.stringify(data, null, 2));
+        
+        if ('id' in data && this.pendingRequests.has(data.id)) {
+          const { resolve, reject } = this.pendingRequests.get(data.id);
+          this.pendingRequests.delete(data.id);
+          data.error ? reject(new Error(data.error.message)) : resolve(data.result);
+          return;
+        }
+        
+        if (data.method === 'ui/notifications/tool-input') {
+          this.onToolInput(data.params);
+        }
+        
+        if (data.method === 'ui/notifications/host-context-changed') {
+          if (data.params?.theme) {
+            this.applyTheme(data.params.theme);
+          }
+        }
+      }
+      
+      request(method, params) {
+        return new Promise((resolve, reject) => {
+          const id = ++this.requestId;
+          this.pendingRequests.set(id, { resolve, reject });
+          window.parent.postMessage({ jsonrpc: '2.0', id, method, params }, '*');
+          
+          setTimeout(() => {
+            if (this.pendingRequests.has(id)) {
+              this.pendingRequests.delete(id);
+              reject(new Error('Request timed out'));
+            }
+          }, 30000);
+        });
+      }
+      
+      notify(method, params) {
+        window.parent.postMessage({ jsonrpc: '2.0', method, params }, '*');
+      }
+      
+      applyTheme(theme) {
+        document.body.className = theme;
+      }
+      
+      reportSize() {
+        this.notify('ui/notifications/size-changed', { height: document.body.scrollHeight });
+      }
+      
+      async sendMessageToChat(text) {
+        return this.request('ui/message', { content: [{ type: 'text', text }] });
+      }
+    }
+    
+    const mcpApp = new McpAppClient();
+    
+    // ==========================================================================
+    // State
+    // ==========================================================================
+    let explanationData = null;
+    let currentStep = 0;
+    let codeLines = [];
+    
+    // ==========================================================================
+    // Rendering
+    // ==========================================================================
+    function renderExplanation(data) {
+      explanationData = data;
+      currentStep = 0;
+      codeLines = data.code.split('\n');
+      
+      // Update header
+      document.getElementById('title').textContent = data.title || 'Code Explanation';
+      document.getElementById('language').textContent = data.language || 'code';
+      document.getElementById('summary').textContent = data.summary || '';
+      
+      // Render code with line numbers
+      renderCode();
+      
+      // Render progress dots
+      renderProgressDots();
+      
+      // Show first step
+      showStep(0);
+      
+      mcpApp.reportSize();
+    }
+    
+    function renderCode() {
+      // Line numbers
+      const lineNumbersHtml = codeLines.map((_, i) => i + 1).join('\n');
+      document.getElementById('lineNumbers').textContent = lineNumbersHtml;
+      
+      // Code lines (each in its own div for highlighting)
+      const codeHtml = codeLines.map((line, i) => {
+        const highlighted = highlightSyntax(line);
+        return `<div class="code-line" data-line="${i + 1}">${highlighted || ' '}</div>`;
+      }).join('');
+      document.getElementById('codeContent').innerHTML = codeHtml;
+    }
+    
+    function highlightSyntax(line) {
+      let escaped = line
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      
+      const patterns = [
+        { regex: /(\/\/.*$)/gm, class: 'token-comment' },
+        { regex: /(#.*$)/gm, class: 'token-comment' },
+        { regex: /("(?:[^"\\]|\\.)*")/g, class: 'token-string' },
+        { regex: /('(?:[^'\\]|\\.)*')/g, class: 'token-string' },
+        { regex: /(`(?:[^`\\]|\\.)*`)/g, class: 'token-string' },
+        { regex: /\b(const|let|var|function|return|if|else|for|while|class|import|export|from|async|await|try|catch|throw|new|this|def|self|print|True|False|None|lambda|in|not|and|or|is|elif|except|finally|raise|with|as|yield|pass|break|continue)\b/g, class: 'token-keyword' },
+        { regex: /\b(\d+\.?\d*)\b/g, class: 'token-number' },
+      ];
+      
+      patterns.forEach(({ regex, class: className }) => {
+        escaped = escaped.replace(regex, (match, group) => 
+          `<span class="${className}">${group}</span>`
+        );
+      });
+      
+      return escaped;
+    }
+    
+    function renderProgressDots() {
+      const container = document.getElementById('progressDots');
+      const dots = explanationData.steps.map((_, i) => 
+        `<div class="progress-dot ${i === 0 ? 'active' : ''}" onclick="goToStep(${i})"></div>`
+      ).join('');
+      container.innerHTML = dots;
+    }
+    
+    function showStep(index) {
+      if (!explanationData || !explanationData.steps[index]) return;
+      
+      currentStep = index;
+      const step = explanationData.steps[index];
+      
+      // Update step indicator
+      document.getElementById('stepIndicator').textContent = 
+        `Step ${index + 1} of ${explanationData.steps.length}`;
+      
+      // Update explanation
+      document.getElementById('stepTitle').textContent = step.title;
+      document.getElementById('stepExplanation').textContent = step.explanation;
+      
+      // Update lines badge
+      const lines = step.lines;
+      const linesText = lines.length === 1 
+        ? `Line ${lines[0]}` 
+        : `Lines ${Math.min(...lines)}-${Math.max(...lines)}`;
+      document.getElementById('stepLines').textContent = linesText;
+      
+      // Highlight code lines
+      document.querySelectorAll('.code-line').forEach(el => {
+        el.classList.remove('highlighted');
+      });
+      
+      lines.forEach(lineNum => {
+        const lineEl = document.querySelector(`.code-line[data-line="${lineNum}"]`);
+        if (lineEl) {
+          lineEl.classList.add('highlighted');
+        }
+      });
+      
+      // Update progress dots
+      document.querySelectorAll('.progress-dot').forEach((dot, i) => {
+        dot.classList.toggle('active', i === index);
+      });
+      
+      // Update navigation buttons
+      document.getElementById('prevBtn').disabled = index === 0;
+      document.getElementById('nextBtn').disabled = index === explanationData.steps.length - 1;
+      
+      if (index === explanationData.steps.length - 1) {
+        document.getElementById('nextBtn').textContent = '✓ Done';
+      } else {
+        document.getElementById('nextBtn').textContent = 'Next ▶';
+      }
+      
+      mcpApp.reportSize();
+    }
+    
+    // ==========================================================================
+    // Navigation
+    // ==========================================================================
+    function prevStep() {
+      if (currentStep > 0) {
+        showStep(currentStep - 1);
+      }
+    }
+    
+    function nextStep() {
+      if (explanationData && currentStep < explanationData.steps.length - 1) {
+        showStep(currentStep + 1);
+      }
+    }
+    
+    function goToStep(index) {
+      showStep(index);
+    }
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') prevStep();
+      if (e.key === 'ArrowRight') nextStep();
+    });
+    
+    // ==========================================================================
+    // Utils
+    // ==========================================================================
+    function showToast(message, type) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast show ${type}`;
+      setTimeout(() => { toast.className = 'toast'; }, 2500);
+    }
+  </script>
+</body>
+</html>

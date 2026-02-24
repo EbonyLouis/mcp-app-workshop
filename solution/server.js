@@ -11,9 +11,10 @@ import {
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
-// Load HTML from file
+// Load HTML files
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const APP_HTML = readFileSync(join(__dirname, "index.html"), "utf-8");
+const CODE_VIEWER_HTML = readFileSync(join(__dirname, "code-viewer.html"), "utf-8");
+const CODE_EXPLAINER_HTML = readFileSync(join(__dirname, "code-explainer.html"), "utf-8");
 
 // Create the MCP server
 const server = new Server(
@@ -55,6 +56,55 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["code"],
         },
       },
+      {
+        name: "explain_code",
+        description: "Display an interactive step-by-step code explanation walkthrough. Use this to explain code with highlighted lines and detailed breakdowns.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            code: {
+              type: "string",
+              description: "The original code being explained",
+            },
+            language: {
+              type: "string",
+              description: "Programming language (e.g., python, javascript)",
+            },
+            title: {
+              type: "string",
+              description: "Title for the code (e.g., 'Quicksort Implementation')",
+            },
+            summary: {
+              type: "string",
+              description: "Brief 1-2 sentence summary of what the code does",
+            },
+            steps: {
+              type: "array",
+              description: "Array of explanation steps, each covering specific lines",
+              items: {
+                type: "object",
+                properties: {
+                  lines: {
+                    type: "array",
+                    items: { type: "integer" },
+                    description: "Line numbers this step explains (1-indexed)",
+                  },
+                  title: {
+                    type: "string",
+                    description: "Short title like 'Base Case' or 'Recursive Call'",
+                  },
+                  explanation: {
+                    type: "string",
+                    description: "2-4 sentence explanation of what these lines do and why",
+                  },
+                },
+                required: ["lines", "title", "explanation"],
+              },
+            },
+          },
+          required: ["code", "language", "summary", "steps"],
+        },
+      },
     ],
   };
 });
@@ -74,10 +124,27 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           text: `Displaying ${language || "code"} snippet${title ? `: ${title}` : ""} (${lines} lines)`,
         },
       ],
-      // This metadata tells goose to render the MCP App
       _meta: {
         ui: {
-          resourceUri: "ui://code-viewer/main",
+          resourceUri: "ui://code-viewer/viewer",
+        },
+      },
+    };
+  }
+
+  if (name === "explain_code") {
+    const { code, language, title, summary, steps } = args;
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Code explanation: ${summary} (${steps.length} steps)`,
+        },
+      ],
+      _meta: {
+        ui: {
+          resourceUri: "ui://code-viewer/explainer",
         },
       },
     };
@@ -91,26 +158,55 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
   return {
     resources: [
       {
-        uri: "ui://code-viewer/main",
+        uri: "ui://code-viewer/viewer",
         name: "Code Viewer",
         description: "Interactive code viewer with syntax highlighting",
+        mimeType: "text/html;profile=mcp-app",
+      },
+      {
+        uri: "ui://code-viewer/explainer",
+        name: "Code Explainer",
+        description: "Interactive step-by-step code explanation",
         mimeType: "text/html;profile=mcp-app",
       },
     ],
   };
 });
 
-// Read resource content - returns the HTML
+// Read resource content
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   const { uri } = request.params;
 
-  if (uri === "ui://code-viewer/main") {
+  if (uri === "ui://code-viewer/viewer") {
     return {
       contents: [
         {
-          uri: "ui://code-viewer/main",
+          uri: "ui://code-viewer/viewer",
           mimeType: "text/html;profile=mcp-app",
-          text: APP_HTML,
+          text: CODE_VIEWER_HTML,
+          _meta: {
+            ui: {
+              csp: {
+                connectDomains: [],
+                resourceDomains: [],
+                frameDomains: [],
+                baseUriDomains: [],
+              },
+              prefersBorder: true,
+            },
+          },
+        },
+      ],
+    };
+  }
+
+  if (uri === "ui://code-viewer/explainer") {
+    return {
+      contents: [
+        {
+          uri: "ui://code-viewer/explainer",
+          mimeType: "text/html;profile=mcp-app",
+          text: CODE_EXPLAINER_HTML,
           _meta: {
             ui: {
               csp: {
