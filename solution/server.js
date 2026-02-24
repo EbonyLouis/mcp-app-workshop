@@ -18,7 +18,7 @@ const APP_HTML = readFileSync(join(__dirname, "index.html"), "utf-8");
 // Create the MCP server
 const server = new Server(
   {
-    name: "mcp-app-demo",
+    name: "code-viewer",
     version: "1.0.0",
   },
   {
@@ -34,12 +34,25 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
       {
-        name: "show_demo_app",
-        description: "Shows an interactive demo MCP App UI in the chat",
+        name: "show_code",
+        description: "Display code in an interactive viewer with syntax highlighting",
         inputSchema: {
           type: "object",
-          properties: {},
-          required: [],
+          properties: {
+            code: {
+              type: "string",
+              description: "The code to display",
+            },
+            language: {
+              type: "string",
+              description: "Programming language for syntax highlighting (e.g., javascript, python, rust)",
+            },
+            title: {
+              type: "string",
+              description: "Title for the code snippet",
+            },
+          },
+          required: ["code"],
         },
       },
     ],
@@ -48,20 +61,23 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 
 // Handle tool calls
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name } = request.params;
+  const { name, arguments: args } = request.params;
 
-  if (name === "show_demo_app") {
+  if (name === "show_code") {
+    const { code, language, title } = args;
+    const lines = code.split("\n").length;
+
     return {
       content: [
         {
           type: "text",
-          text: "The demo app is now displayed!",
+          text: `Displaying ${language || "code"} snippet${title ? `: ${title}` : ""} (${lines} lines)`,
         },
       ],
       // This metadata tells goose to render the MCP App
       _meta: {
         ui: {
-          resourceUri: "ui://mcp-app-demo/main",
+          resourceUri: "ui://code-viewer/main",
         },
       },
     };
@@ -75,9 +91,9 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
   return {
     resources: [
       {
-        uri: "ui://mcp-app-demo/main",
-        name: "MCP App Demo",
-        description: "An interactive demo",
+        uri: "ui://code-viewer/main",
+        name: "Code Viewer",
+        description: "Interactive code viewer with syntax highlighting",
         mimeType: "text/html;profile=mcp-app",
       },
     ],
@@ -88,11 +104,11 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   const { uri } = request.params;
 
-  if (uri === "ui://mcp-app-demo/main") {
+  if (uri === "ui://code-viewer/main") {
     return {
       contents: [
         {
-          uri: "ui://mcp-app-demo/main",
+          uri: "ui://code-viewer/main",
           mimeType: "text/html;profile=mcp-app",
           text: APP_HTML,
           _meta: {
@@ -118,7 +134,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("MCP App Demo server running on stdio");
+  console.error("Code Viewer MCP server running on stdio");
 }
 
 main().catch(console.error);
