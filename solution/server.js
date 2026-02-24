@@ -11,10 +11,9 @@ import {
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
-// Load HTML files
+// Load HTML file
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const CODE_VIEWER_HTML = readFileSync(join(__dirname, "code-viewer.html"), "utf-8");
-const CODE_EXPLAINER_HTML = readFileSync(join(__dirname, "code-explainer.html"), "utf-8");
+const APP_HTML = readFileSync(join(__dirname, "index.html"), "utf-8");
 
 // Create the MCP server
 const server = new Server(
@@ -36,7 +35,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: "show_code",
-        description: "Display code in an interactive viewer with syntax highlighting",
+        description: "Display code in an interactive viewer with syntax highlighting. The viewer has a 'Discuss' button that lets users request a step-by-step explanation.",
         inputSchema: {
           type: "object",
           properties: {
@@ -57,22 +56,22 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: "explain_code",
-        description: "Display an interactive step-by-step code explanation walkthrough. Use this to explain code with highlighted lines and detailed breakdowns.",
+        name: "explain_code_steps",
+        description: "Provide a step-by-step explanation of code. This is called by the Code Viewer UI when the user clicks 'Discuss'. Return structured steps that will render as an interactive walkthrough.",
         inputSchema: {
           type: "object",
           properties: {
             code: {
               type: "string",
-              description: "The original code being explained",
+              description: "The code being explained",
             },
             language: {
               type: "string",
-              description: "Programming language (e.g., python, javascript)",
+              description: "Programming language",
             },
             title: {
               type: "string",
-              description: "Title for the code (e.g., 'Quicksort Implementation')",
+              description: "Title for the explanation",
             },
             summary: {
               type: "string",
@@ -80,7 +79,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             steps: {
               type: "array",
-              description: "Array of explanation steps, each covering specific lines",
+              description: "Array of explanation steps",
               items: {
                 type: "object",
                 properties: {
@@ -91,11 +90,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                   },
                   title: {
                     type: "string",
-                    description: "Short title like 'Base Case' or 'Recursive Call'",
+                    description: "Short title for this step",
                   },
                   explanation: {
                     type: "string",
-                    description: "2-4 sentence explanation of what these lines do and why",
+                    description: "Detailed explanation of these lines",
                   },
                 },
                 required: ["lines", "title", "explanation"],
@@ -126,27 +125,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       ],
       _meta: {
         ui: {
-          resourceUri: "ui://code-viewer/viewer",
+          resourceUri: "ui://code-viewer/main",
         },
       },
     };
   }
 
-  if (name === "explain_code") {
-    const { code, language, title, summary, steps } = args;
+  if (name === "explain_code_steps") {
+    const { summary, steps } = args;
 
     return {
       content: [
         {
           type: "text",
-          text: `Code explanation: ${summary} (${steps.length} steps)`,
+          text: `${summary}\n\nExplanation has ${steps.length} steps.`,
         },
       ],
-      _meta: {
-        ui: {
-          resourceUri: "ui://code-viewer/explainer",
-        },
-      },
+      // No UI - this returns data that the existing Code Viewer UI will use
     };
   }
 
@@ -158,15 +153,9 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
   return {
     resources: [
       {
-        uri: "ui://code-viewer/viewer",
+        uri: "ui://code-viewer/main",
         name: "Code Viewer",
-        description: "Interactive code viewer with syntax highlighting",
-        mimeType: "text/html;profile=mcp-app",
-      },
-      {
-        uri: "ui://code-viewer/explainer",
-        name: "Code Explainer",
-        description: "Interactive step-by-step code explanation",
+        description: "Interactive code viewer with syntax highlighting and explanation",
         mimeType: "text/html;profile=mcp-app",
       },
     ],
@@ -177,36 +166,13 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   const { uri } = request.params;
 
-  if (uri === "ui://code-viewer/viewer") {
+  if (uri === "ui://code-viewer/main") {
     return {
       contents: [
         {
-          uri: "ui://code-viewer/viewer",
+          uri: "ui://code-viewer/main",
           mimeType: "text/html;profile=mcp-app",
-          text: CODE_VIEWER_HTML,
-          _meta: {
-            ui: {
-              csp: {
-                connectDomains: [],
-                resourceDomains: [],
-                frameDomains: [],
-                baseUriDomains: [],
-              },
-              prefersBorder: true,
-            },
-          },
-        },
-      ],
-    };
-  }
-
-  if (uri === "ui://code-viewer/explainer") {
-    return {
-      contents: [
-        {
-          uri: "ui://code-viewer/explainer",
-          mimeType: "text/html;profile=mcp-app",
-          text: CODE_EXPLAINER_HTML,
+          text: APP_HTML,
           _meta: {
             ui: {
               csp: {

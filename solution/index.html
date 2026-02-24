@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Code Explainer</title>
+  <title>Code Viewer</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     
@@ -27,7 +27,8 @@
     body.light .container { background: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
     body.dark .container { background: #2d2d2f; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
     
-    /* Header */
+    /* ========== VIEWER MODE ========== */
+    
     .header {
       display: flex;
       align-items: center;
@@ -39,14 +40,11 @@
     body.light .header { border-color: #e5e5e7; background: #fafafa; }
     body.dark .header { border-color: #3d3d3f; background: #252527; }
     
-    .header-left {
+    .title {
       display: flex;
       align-items: center;
-      gap: 12px;
-    }
-    
-    .header h1 {
-      font-size: 16px;
+      gap: 8px;
+      font-size: 14px;
       font-weight: 600;
     }
     
@@ -61,35 +59,40 @@
     body.light .language-badge { background: #e8f0fe; color: #1a73e8; }
     body.dark .language-badge { background: #1a3a5c; color: #8ab4f8; }
     
-    .step-indicator {
-      font-size: 13px;
+    .actions {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      font-size: 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
       font-weight: 500;
-      padding: 4px 12px;
-      border-radius: 12px;
+      transition: all 0.2s;
     }
     
-    body.light .step-indicator { background: #f0f0f0; color: #666; }
-    body.dark .step-indicator { background: #3d3d3f; color: #aaa; }
+    body.light .btn { background: #f0f0f0; color: #333; }
+    body.dark .btn { background: #3d3d3f; color: #e5e5e7; }
     
-    /* Summary */
-    .summary {
-      padding: 12px 16px;
-      font-size: 14px;
-      line-height: 1.5;
-      border-bottom: 1px solid;
+    .btn:hover:not(:disabled) { opacity: 0.8; }
+    .btn:active:not(:disabled) { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    
+    .btn-primary {
+      background: #0071e3 !important;
+      color: white !important;
     }
-    
-    body.light .summary { background: #f0f7ff; border-color: #e5e5e7; color: #1a73e8; }
-    body.dark .summary { background: #1a2a3a; border-color: #3d3d3f; color: #8ab4f8; }
     
     /* Code area */
     .code-wrapper {
       position: relative;
-      border-bottom: 1px solid;
     }
-    
-    body.light .code-wrapper { border-color: #e5e5e7; }
-    body.dark .code-wrapper { border-color: #3d3d3f; }
     
     .line-numbers {
       position: absolute;
@@ -153,10 +156,90 @@
     body.dark .token-function { color: #d2a8ff; }
     body.dark .token-number { color: #79c0ff; }
     
+    /* Footer */
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      font-size: 12px;
+      border-top: 1px solid;
+    }
+    
+    body.light .footer { border-color: #e5e5e7; background: #fafafa; color: #666; }
+    body.dark .footer { border-color: #3d3d3f; background: #252527; color: #999; }
+    
+    .stats {
+      display: flex;
+      gap: 16px;
+    }
+    
+    /* ========== EXPLAINER MODE ========== */
+    
+    .explainer-header {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid;
+    }
+    
+    body.light .explainer-header { border-color: #e5e5e7; background: #fafafa; }
+    body.dark .explainer-header { border-color: #3d3d3f; background: #252527; }
+    
+    .explainer-header.active { display: flex; }
+    .header.hidden { display: none; }
+    
+    .back-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      font-size: 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    
+    body.light .back-btn { background: #f0f0f0; color: #333; }
+    body.dark .back-btn { background: #3d3d3f; color: #e5e5e7; }
+    
+    .step-indicator {
+      font-size: 13px;
+      font-weight: 500;
+      padding: 4px 12px;
+      border-radius: 12px;
+    }
+    
+    body.light .step-indicator { background: #f0f0f0; color: #666; }
+    body.dark .step-indicator { background: #3d3d3f; color: #aaa; }
+    
+    /* Summary banner */
+    .summary-banner {
+      display: none;
+      padding: 12px 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      border-bottom: 1px solid;
+    }
+    
+    .summary-banner.active { display: block; }
+    
+    body.light .summary-banner { background: #f0f7ff; border-color: #e5e5e7; color: #1a73e8; }
+    body.dark .summary-banner { background: #1a2a3a; border-color: #3d3d3f; color: #8ab4f8; }
+    
     /* Explanation panel */
     .explanation-panel {
+      display: none;
       padding: 16px;
+      border-top: 1px solid;
     }
+    
+    .explanation-panel.active { display: block; }
+    
+    body.light .explanation-panel { border-color: #e5e5e7; }
+    body.dark .explanation-panel { border-color: #3d3d3f; }
     
     .step-title {
       display: flex;
@@ -192,12 +275,14 @@
     
     /* Navigation */
     .navigation {
-      display: flex;
+      display: none;
       align-items: center;
       justify-content: space-between;
       padding: 12px 16px;
       border-top: 1px solid;
     }
+    
+    .navigation.active { display: flex; }
     
     body.light .navigation { border-color: #e5e5e7; background: #fafafa; }
     body.dark .navigation { border-color: #3d3d3f; background: #252527; }
@@ -248,11 +333,9 @@
       transform: scale(1.2);
     }
     
-    .progress-dot:hover:not(.active) {
-      background: #999;
-    }
+    .progress-dot:hover:not(.active) { background: #999; }
     
-    /* Loading state */
+    /* Loading & Toast */
     .loading {
       display: flex;
       align-items: center;
@@ -276,7 +359,6 @@
       to { transform: rotate(360deg); }
     }
     
-    /* Toast */
     .toast {
       position: fixed;
       bottom: 20px;
@@ -298,45 +380,60 @@
     
     .toast.success { background: #34c759; color: white; }
     .toast.error { background: #ff3b30; color: white; }
+    .toast.info { background: #0071e3; color: white; }
   </style>
 </head>
 <body class="light">
   <div class="container">
-    <div class="header">
-      <div class="header-left">
-        <h1 id="title">Code Explanation</h1>
+    <!-- VIEWER HEADER -->
+    <div class="header" id="viewerHeader">
+      <div class="title">
+        <span id="title">Code Snippet</span>
         <span class="language-badge" id="language">code</span>
       </div>
+      <div class="actions">
+        <button class="btn" onclick="copyCode()">📋 Copy</button>
+        <button class="btn btn-primary" onclick="requestExplanation()" id="discussBtn">💬 Discuss</button>
+      </div>
+    </div>
+    
+    <!-- EXPLAINER HEADER -->
+    <div class="explainer-header" id="explainerHeader">
+      <button class="back-btn" onclick="backToViewer()">← Back to Code</button>
       <span class="step-indicator" id="stepIndicator">Step 1 of 1</span>
     </div>
     
-    <div class="summary" id="summary">Loading explanation...</div>
+    <!-- SUMMARY BANNER (explainer mode) -->
+    <div class="summary-banner" id="summaryBanner"></div>
     
-    <div class="code-wrapper">
-      <div class="line-numbers" id="lineNumbers"></div>
-      <div class="code-content" id="codeContent">
-        <div class="loading">Loading</div>
-      </div>
+    <!-- CODE AREA -->
+    <div class="code-wrapper" id="codeWrapper">
+      <div class="loading">Loading code</div>
     </div>
     
+    <!-- EXPLANATION PANEL (explainer mode) -->
     <div class="explanation-panel" id="explanationPanel">
       <div class="step-title">
         <span id="stepTitle">Loading...</span>
         <span class="step-lines" id="stepLines">Lines 1-1</span>
       </div>
-      <div class="step-explanation" id="stepExplanation">
-        Loading explanation...
-      </div>
+      <div class="step-explanation" id="stepExplanation"></div>
     </div>
     
-    <div class="navigation">
-      <button class="nav-btn" id="prevBtn" onclick="prevStep()" disabled>
-        ◀ Previous
-      </button>
+    <!-- VIEWER FOOTER -->
+    <div class="footer" id="viewerFooter">
+      <div class="stats">
+        <span id="lineCount">0 lines</span>
+        <span id="charCount">0 characters</span>
+      </div>
+      <span>MCP App</span>
+    </div>
+    
+    <!-- EXPLAINER NAVIGATION -->
+    <div class="navigation" id="navigation">
+      <button class="nav-btn" id="prevBtn" onclick="prevStep()" disabled>◀ Previous</button>
       <div class="progress-dots" id="progressDots"></div>
-      <button class="nav-btn primary" id="nextBtn" onclick="nextStep()">
-        Next ▶
-      </button>
+      <button class="nav-btn primary" id="nextBtn" onclick="nextStep()">Next ▶</button>
     </div>
   </div>
   
@@ -371,13 +468,14 @@
           
           this.notify('ui/notifications/initialized', {});
           
+          // Handle tool input
           if (result.toolInput?.arguments) {
             this.onToolInput(result.toolInput);
           }
           
           this.reportSize();
         } catch (error) {
-          console.error('Failed to initialize MCP App:', error);
+          console.error('Failed to initialize:', error);
           showToast('Failed to initialize', 'error');
         }
       }
@@ -385,8 +483,14 @@
       onToolInput(toolInput) {
         console.log('onToolInput:', JSON.stringify(toolInput, null, 2));
         const args = toolInput.arguments || toolInput.params?.arguments || toolInput;
-        if (args.code !== undefined && args.steps !== undefined) {
+        
+        // Check if this is code viewer data or explanation data
+        if (args.steps !== undefined) {
+          // This is explanation data - switch to explainer mode
           renderExplanation(args);
+        } else if (args.code !== undefined) {
+          // This is code viewer data
+          renderCode(args);
         }
       }
       
@@ -451,46 +555,79 @@
     // ==========================================================================
     // State
     // ==========================================================================
-    let explanationData = null;
-    let currentStep = 0;
+    let currentMode = 'viewer'; // 'viewer' or 'explainer'
+    let currentCode = '';
+    let currentLanguage = 'code';
+    let currentTitle = 'Code Snippet';
     let codeLines = [];
     
+    // Explainer state
+    let explanationData = null;
+    let currentStep = 0;
+    
     // ==========================================================================
-    // Rendering
+    // MODE SWITCHING
     // ==========================================================================
-    function renderExplanation(data) {
-      explanationData = data;
-      currentStep = 0;
-      codeLines = data.code.split('\n');
+    function switchToExplainerMode() {
+      currentMode = 'explainer';
+      document.getElementById('viewerHeader').classList.add('hidden');
+      document.getElementById('viewerFooter').style.display = 'none';
+      document.getElementById('explainerHeader').classList.add('active');
+      document.getElementById('summaryBanner').classList.add('active');
+      document.getElementById('explanationPanel').classList.add('active');
+      document.getElementById('navigation').classList.add('active');
+      mcpApp.reportSize();
+    }
+    
+    function backToViewer() {
+      currentMode = 'viewer';
+      document.getElementById('viewerHeader').classList.remove('hidden');
+      document.getElementById('viewerFooter').style.display = 'flex';
+      document.getElementById('explainerHeader').classList.remove('active');
+      document.getElementById('summaryBanner').classList.remove('active');
+      document.getElementById('explanationPanel').classList.remove('active');
+      document.getElementById('navigation').classList.remove('active');
       
-      // Update header
-      document.getElementById('title').textContent = data.title || 'Code Explanation';
-      document.getElementById('language').textContent = data.language || 'code';
-      document.getElementById('summary').textContent = data.summary || '';
-      
-      // Render code with line numbers
-      renderCode();
-      
-      // Render progress dots
-      renderProgressDots();
-      
-      // Show first step
-      showStep(0);
+      // Clear highlights
+      document.querySelectorAll('.code-line').forEach(el => {
+        el.classList.remove('highlighted');
+      });
       
       mcpApp.reportSize();
     }
     
-    function renderCode() {
-      // Line numbers
-      const lineNumbersHtml = codeLines.map((_, i) => i + 1).join('\n');
-      document.getElementById('lineNumbers').textContent = lineNumbersHtml;
+    // ==========================================================================
+    // CODE VIEWER
+    // ==========================================================================
+    function renderCode(data) {
+      currentCode = data.code || '';
+      currentLanguage = data.language || 'code';
+      currentTitle = data.title || 'Code Snippet';
+      codeLines = currentCode.split('\n');
       
-      // Code lines (each in its own div for highlighting)
+      document.getElementById('title').textContent = currentTitle;
+      document.getElementById('language').textContent = currentLanguage;
+      
+      renderCodeLines();
+      
+      document.getElementById('lineCount').textContent = `${codeLines.length} lines`;
+      document.getElementById('charCount').textContent = `${currentCode.length} characters`;
+      
+      mcpApp.reportSize();
+    }
+    
+    function renderCodeLines() {
+      const lineNumbersHtml = codeLines.map((_, i) => i + 1).join('\n');
+      
       const codeHtml = codeLines.map((line, i) => {
         const highlighted = highlightSyntax(line);
         return `<div class="code-line" data-line="${i + 1}">${highlighted || ' '}</div>`;
       }).join('');
-      document.getElementById('codeContent').innerHTML = codeHtml;
+      
+      document.getElementById('codeWrapper').innerHTML = `
+        <div class="line-numbers">${lineNumbersHtml}</div>
+        <div class="code-content">${codeHtml}</div>
+      `;
     }
     
     function highlightSyntax(line) {
@@ -518,12 +655,34 @@
       return escaped;
     }
     
-    function renderProgressDots() {
-      const container = document.getElementById('progressDots');
-      const dots = explanationData.steps.map((_, i) => 
+    // ==========================================================================
+    // EXPLAINER
+    // ==========================================================================
+    function renderExplanation(data) {
+      explanationData = data;
+      currentStep = 0;
+      
+      // Update code if provided
+      if (data.code) {
+        currentCode = data.code;
+        currentLanguage = data.language || currentLanguage;
+        currentTitle = data.title || currentTitle;
+        codeLines = currentCode.split('\n');
+        renderCodeLines();
+      }
+      
+      // Update summary
+      document.getElementById('summaryBanner').textContent = data.summary || '';
+      
+      // Render progress dots
+      const dots = data.steps.map((_, i) => 
         `<div class="progress-dot ${i === 0 ? 'active' : ''}" onclick="goToStep(${i})"></div>`
       ).join('');
-      container.innerHTML = dots;
+      document.getElementById('progressDots').innerHTML = dots;
+      
+      // Switch to explainer mode and show first step
+      switchToExplainerMode();
+      showStep(0);
     }
     
     function showStep(index) {
@@ -541,9 +700,9 @@
       document.getElementById('stepExplanation').textContent = step.explanation;
       
       // Update lines badge
-      const lines = step.lines;
-      const linesText = lines.length === 1 
-        ? `Line ${lines[0]}` 
+      const lines = step.lines || [];
+      const linesText = lines.length === 0 ? 'Overview'
+        : lines.length === 1 ? `Line ${lines[0]}` 
         : `Lines ${Math.min(...lines)}-${Math.max(...lines)}`;
       document.getElementById('stepLines').textContent = linesText;
       
@@ -566,24 +725,15 @@
       
       // Update navigation buttons
       document.getElementById('prevBtn').disabled = index === 0;
-      document.getElementById('nextBtn').disabled = index === explanationData.steps.length - 1;
-      
-      if (index === explanationData.steps.length - 1) {
-        document.getElementById('nextBtn').textContent = '✓ Done';
-      } else {
-        document.getElementById('nextBtn').textContent = 'Next ▶';
-      }
+      const isLast = index === explanationData.steps.length - 1;
+      document.getElementById('nextBtn').disabled = isLast;
+      document.getElementById('nextBtn').textContent = isLast ? '✓ Done' : 'Next ▶';
       
       mcpApp.reportSize();
     }
     
-    // ==========================================================================
-    // Navigation
-    // ==========================================================================
     function prevStep() {
-      if (currentStep > 0) {
-        showStep(currentStep - 1);
-      }
+      if (currentStep > 0) showStep(currentStep - 1);
     }
     
     function nextStep() {
@@ -598,13 +748,74 @@
     
     // Keyboard navigation
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowLeft') prevStep();
-      if (e.key === 'ArrowRight') nextStep();
+      if (currentMode === 'explainer') {
+        if (e.key === 'ArrowLeft') prevStep();
+        if (e.key === 'ArrowRight') nextStep();
+        if (e.key === 'Escape') backToViewer();
+      }
     });
     
     // ==========================================================================
-    // Utils
+    // ACTIONS
     // ==========================================================================
+    function copyCode() {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(currentCode)
+          .then(() => showToast('Copied to clipboard!', 'success'))
+          .catch(() => fallbackCopy());
+      } else {
+        fallbackCopy();
+      }
+    }
+    
+    function fallbackCopy() {
+      const textarea = document.createElement('textarea');
+      textarea.value = currentCode;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showToast('Copied to clipboard!', 'success');
+      } catch (err) {
+        showToast('Failed to copy', 'error');
+      }
+      document.body.removeChild(textarea);
+    }
+    
+    async function requestExplanation() {
+      if (!currentCode) {
+        showToast('No code to explain', 'error');
+        return;
+      }
+      
+      // Disable button while loading
+      const btn = document.getElementById('discussBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ Loading...';
+      
+      showToast('Requesting explanation...', 'info');
+      
+      const message = `Please explain this ${currentLanguage} code step-by-step using the explain_code_steps tool.
+
+Break it down into logical sections (3-6 steps), explaining what each part does and why. Include the original code, language, a brief summary, and detailed steps with line numbers.
+
+\`\`\`${currentLanguage}
+${currentCode}
+\`\`\``;
+      
+      try {
+        await mcpApp.sendMessageToChat(message);
+        // The explanation will come back via tool-input notification
+        // and trigger renderExplanation()
+      } catch (error) {
+        showToast('Failed: ' + error.message, 'error');
+        btn.disabled = false;
+        btn.textContent = '💬 Discuss';
+      }
+    }
+    
     function showToast(message, type) {
       const toast = document.getElementById('toast');
       toast.textContent = message;
