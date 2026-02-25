@@ -11,7 +11,7 @@ import {
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
-// Load HTML from file
+// Load HTML file
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const APP_HTML = readFileSync(join(__dirname, "index.html"), "utf-8");
 
@@ -32,50 +32,38 @@ const server = new Server(
 // =============================================================================
 // TODO 1: Define the tools
 // =============================================================================
-// Register a handler for ListToolsRequestSchema
-// Return an array with TWO tools:
+// Tools are what the LLM can call. Each tool has:
+//   - name: unique identifier
+//   - description: helps the LLM know when to use it
+//   - inputSchema: JSON Schema defining the parameters
 //
-// Tool 1: "show_code"
-//   - description: "Display code in an interactive viewer with syntax highlighting"
-//   - inputSchema properties:
-//       - code (string, required): "The code to display"
-//       - language (string): "Programming language for syntax highlighting"
-//       - title (string): "Title for the code snippet"
+// We're defining TWO tools that both use the SAME UI:
+//   1. show_code - displays code in the viewer
+//   2. explain_code_steps - shows step-by-step explanation
 //
-// Tool 2: "explain_code_steps"
-//   - description: "Provide a step-by-step explanation of code"
-//   - inputSchema properties:
-//       - code (string, required): "The code being explained"
-//       - language (string, required): "Programming language"
-//       - title (string): "Title for the explanation"
-//       - summary (string, required): "Brief summary of what the code does"
-//       - steps (array, required): Array of step objects with:
-//           - lines (array of integers): Line numbers this step explains
-//           - title (string): Short title for this step
-//           - explanation (string): Detailed explanation
+// Uncomment both tool definitions below.
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
-      // TODO: Add "show_code" tool definition
+      // TODO: Uncomment the "show_code" tool
       // {
       //   name: "show_code",
-      //   description: "Display code in an interactive viewer with syntax highlighting",
+      //   description: "Display code in an interactive viewer with syntax highlighting.",
       //   inputSchema: {
       //     type: "object",
       //     properties: {
       //       code: { type: "string", description: "The code to display" },
-      //       language: { type: "string", description: "Programming language" },
+      //       language: { type: "string", description: "Programming language (e.g., javascript, python)" },
       //       title: { type: "string", description: "Title for the code snippet" },
       //     },
       //     required: ["code"],
       //   },
       // },
-      
-      // TODO: Add "explain_code_steps" tool definition
+      // TODO: Uncomment the "explain_code_steps" tool
       // {
       //   name: "explain_code_steps",
-      //   description: "Provide a step-by-step explanation of code",
+      //   description: "Provide a step-by-step explanation of code with structured steps.",
       //   inputSchema: {
       //     type: "object",
       //     properties: {
@@ -89,7 +77,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       //         items: {
       //           type: "object",
       //           properties: {
-      //             lines: { type: "array", items: { type: "integer" }, description: "Line numbers" },
+      //             lines: { type: "array", items: { type: "integer" }, description: "Line numbers (1-indexed)" },
       //             title: { type: "string", description: "Step title" },
       //             explanation: { type: "string", description: "Detailed explanation" },
       //           },
@@ -105,20 +93,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 });
 
 // =============================================================================
-// TODO 2: Handle tool calls
+// TODO 2: Link tools to the UI (THE KEY PART!)
 // =============================================================================
-// Register a handler for CallToolRequestSchema
+// When a tool is called, we return:
+//   - content: text response (for hosts without UI support)
+//   - _meta.ui.resourceUri: THE LINK to our UI resource
+//
+// The resourceUri tells goose "display this UI after the tool runs".
 // 
-// For "show_code":
-//   1. Return content with a text summary
-//   2. Include _meta.ui.resourceUri pointing to "ui://code-viewer/main"
+// IMPORTANT: Both tools return the SAME resourceUri!
+// The UI is smart - it checks if the data has "steps" and switches modes.
 //
-// For "explain_code_steps":
-//   1. Return content with a text summary
-//   2. Include _meta.ui.resourceUri pointing to "ui://code-viewer/main" (SAME UI!)
-//
-// The resourceUri links the tool to the UI. Both tools use the SAME UI resource,
-// but the UI will detect which type of data it receives and switch modes.
+// Uncomment the _meta blocks in BOTH handlers below.
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
@@ -126,7 +112,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   if (name === "show_code") {
     const { code, language, title } = args;
     const lines = code.split("\n").length;
-    
+
     return {
       content: [
         {
@@ -134,7 +120,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           text: `Displaying ${language || "code"} snippet${title ? `: ${title}` : ""} (${lines} lines)`,
         },
       ],
-      // TODO: Add _meta.ui.resourceUri to link to the UI
+      // TODO: Uncomment to link this tool to the UI
       // _meta: {
       //   ui: {
       //     resourceUri: "ui://code-viewer/main",
@@ -145,7 +131,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   if (name === "explain_code_steps") {
     const { summary, steps } = args;
-    
+
     return {
       content: [
         {
@@ -153,11 +139,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           text: `${summary}\n\nExplanation has ${steps.length} steps.`,
         },
       ],
-      // TODO: Add _meta.ui.resourceUri - use the SAME resource as show_code!
-      // The UI will detect the "steps" property and switch to explainer mode
+      // TODO: Uncomment - same resourceUri! The UI will switch to explainer mode.
       // _meta: {
       //   ui: {
-      //     resourceUri: "ui://code-viewer/main",
+      //     resourceUri: "ui://code-viewer/main",  // Same UI - it will switch to explainer mode!
       //   },
       // },
     };
@@ -167,19 +152,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 // =============================================================================
-// TODO 3: List available resources
+// TODO 3: Register the UI resource
 // =============================================================================
-// Register a handler for ListResourcesRequestSchema
-// Return an array with one resource:
-//   - uri: "ui://code-viewer/main"
-//   - name: "Code Viewer"
-//   - description: "Interactive code viewer with syntax highlighting and explanation"
-//   - mimeType: "text/html;profile=mcp-app"  <-- This mime type is REQUIRED!
+// Resources are things the host can fetch. For MCP Apps, we serve HTML.
+//
+// Key fields:
+//   - uri: unique identifier (must match what tools return in resourceUri)
+//   - mimeType: MUST be "text/html;profile=mcp-app" for MCP Apps!
+//
+// Uncomment the resource definition below.
 
 server.setRequestHandler(ListResourcesRequestSchema, async () => {
   return {
     resources: [
-      // TODO: Add your resource definition here
+      // TODO: Uncomment the resource definition
       // {
       //   uri: "ui://code-viewer/main",
       //   name: "Code Viewer",
@@ -191,11 +177,15 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
 });
 
 // =============================================================================
-// TODO 4: Serve the HTML resource
+// TODO 4: Serve the HTML content
 // =============================================================================
-// Register a handler for ReadResourceRequestSchema
-// When uri === "ui://code-viewer/main":
-//   Return the HTML content with proper metadata
+// When goose requests our resource, we return the HTML.
+//
+// The _meta.ui section configures:
+//   - csp: Content Security Policy (what external resources the UI can load)
+//   - prefersBorder: whether to show a border around the UI
+//
+// Uncomment the contents below.
 
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   const { uri } = request.params;
@@ -203,7 +193,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   if (uri === "ui://code-viewer/main") {
     return {
       contents: [
-        // TODO: Return the HTML content with metadata
+        // TODO: Uncomment to serve the HTML
         // {
         //   uri: "ui://code-viewer/main",
         //   mimeType: "text/html;profile=mcp-app",
