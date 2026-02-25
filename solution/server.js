@@ -141,7 +141,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           text: `${summary}\n\nExplanation has ${steps.length} steps.`,
         },
       ],
-      // No UI - this returns data that the existing Code Viewer UI will use
+      _meta: {
+        ui: {
+          resourceUri: "ui://code-viewer/main",  // Same UI - it will switch to explainer mode!
+        },
+      },
     };
   }
 

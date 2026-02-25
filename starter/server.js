@@ -30,23 +30,34 @@ const server = new Server(
 );
 
 // =============================================================================
-// TODO 1: List available tools
+// TODO 1: Define the tools
 // =============================================================================
 // Register a handler for ListToolsRequestSchema
-// Return an array with one tool:
-//   - name: "show_code"
-//   - description: "Display code in an interactive viewer with syntax highlighting"
-//   - inputSchema with properties:
-//       - code (string, required): "The code to display"
-//       - language (string, optional): "Programming language for syntax highlighting"
-//       - title (string, optional): "Title for the code snippet"
+// Return an array with TWO tools:
 //
-// Hint: server.setRequestHandler(ListToolsRequestSchema, async () => { ... })
+// Tool 1: "show_code"
+//   - description: "Display code in an interactive viewer with syntax highlighting"
+//   - inputSchema properties:
+//       - code (string, required): "The code to display"
+//       - language (string): "Programming language for syntax highlighting"
+//       - title (string): "Title for the code snippet"
+//
+// Tool 2: "explain_code_steps"
+//   - description: "Provide a step-by-step explanation of code"
+//   - inputSchema properties:
+//       - code (string, required): "The code being explained"
+//       - language (string, required): "Programming language"
+//       - title (string): "Title for the explanation"
+//       - summary (string, required): "Brief summary of what the code does"
+//       - steps (array, required): Array of step objects with:
+//           - lines (array of integers): Line numbers this step explains
+//           - title (string): Short title for this step
+//           - explanation (string): Detailed explanation
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
-      // TODO: Add your tool definition here
+      // TODO: Add "show_code" tool definition
       // {
       //   name: "show_code",
       //   description: "Display code in an interactive viewer with syntax highlighting",
@@ -54,10 +65,39 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       //     type: "object",
       //     properties: {
       //       code: { type: "string", description: "The code to display" },
-      //       language: { type: "string", description: "Programming language (e.g., javascript, python)" },
+      //       language: { type: "string", description: "Programming language" },
       //       title: { type: "string", description: "Title for the code snippet" },
       //     },
       //     required: ["code"],
+      //   },
+      // },
+      
+      // TODO: Add "explain_code_steps" tool definition
+      // {
+      //   name: "explain_code_steps",
+      //   description: "Provide a step-by-step explanation of code",
+      //   inputSchema: {
+      //     type: "object",
+      //     properties: {
+      //       code: { type: "string", description: "The code being explained" },
+      //       language: { type: "string", description: "Programming language" },
+      //       title: { type: "string", description: "Title for the explanation" },
+      //       summary: { type: "string", description: "Brief summary of what the code does" },
+      //       steps: {
+      //         type: "array",
+      //         description: "Array of explanation steps",
+      //         items: {
+      //           type: "object",
+      //           properties: {
+      //             lines: { type: "array", items: { type: "integer" }, description: "Line numbers" },
+      //             title: { type: "string", description: "Step title" },
+      //             explanation: { type: "string", description: "Detailed explanation" },
+      //           },
+      //           required: ["lines", "title", "explanation"],
+      //         },
+      //       },
+      //     },
+      //     required: ["code", "language", "summary", "steps"],
       //   },
       // },
     ],
@@ -68,11 +108,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 // TODO 2: Handle tool calls
 // =============================================================================
 // Register a handler for CallToolRequestSchema
-// When the tool "show_code" is called:
-//   1. Return content with a text summary (for non-UI hosts)
+// 
+// For "show_code":
+//   1. Return content with a text summary
 //   2. Include _meta.ui.resourceUri pointing to "ui://code-viewer/main"
 //
-// This resourceUri is THE LINK that connects the tool to the UI!
+// For "explain_code_steps":
+//   1. Return content with a text summary
+//   2. Include _meta.ui.resourceUri pointing to "ui://code-viewer/main" (SAME UI!)
+//
+// The resourceUri links the tool to the UI. Both tools use the SAME UI resource,
+// but the UI will detect which type of data it receives and switch modes.
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
@@ -88,7 +134,27 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           text: `Displaying ${language || "code"} snippet${title ? `: ${title}` : ""} (${lines} lines)`,
         },
       ],
-      // TODO: Add _meta.ui.resourceUri here to link to the UI resource
+      // TODO: Add _meta.ui.resourceUri to link to the UI
+      // _meta: {
+      //   ui: {
+      //     resourceUri: "ui://code-viewer/main",
+      //   },
+      // },
+    };
+  }
+
+  if (name === "explain_code_steps") {
+    const { summary, steps } = args;
+    
+    return {
+      content: [
+        {
+          type: "text",
+          text: `${summary}\n\nExplanation has ${steps.length} steps.`,
+        },
+      ],
+      // TODO: Add _meta.ui.resourceUri - use the SAME resource as show_code!
+      // The UI will detect the "steps" property and switch to explainer mode
       // _meta: {
       //   ui: {
       //     resourceUri: "ui://code-viewer/main",
@@ -107,8 +173,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 // Return an array with one resource:
 //   - uri: "ui://code-viewer/main"
 //   - name: "Code Viewer"
-//   - description: "Interactive code viewer with syntax highlighting"
-//   - mimeType: "text/html;profile=mcp-app"  <-- This mime type is required!
+//   - description: "Interactive code viewer with syntax highlighting and explanation"
+//   - mimeType: "text/html;profile=mcp-app"  <-- This mime type is REQUIRED!
 
 server.setRequestHandler(ListResourcesRequestSchema, async () => {
   return {
@@ -117,7 +183,7 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
       // {
       //   uri: "ui://code-viewer/main",
       //   name: "Code Viewer",
-      //   description: "Interactive code viewer with syntax highlighting",
+      //   description: "Interactive code viewer with syntax highlighting and explanation",
       //   mimeType: "text/html;profile=mcp-app",
       // },
     ],
@@ -130,21 +196,6 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
 // Register a handler for ReadResourceRequestSchema
 // When uri === "ui://code-viewer/main":
 //   Return the HTML content with proper metadata
-//
-// The response structure:
-// {
-//   contents: [{
-//     uri: "ui://code-viewer/main",
-//     mimeType: "text/html;profile=mcp-app",
-//     text: APP_HTML,
-//     _meta: {
-//       ui: {
-//         csp: { connectDomains: [], resourceDomains: [], frameDomains: [], baseUriDomains: [] },
-//         prefersBorder: true,
-//       },
-//     },
-//   }],
-// }
 
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   const { uri } = request.params;
@@ -153,6 +204,22 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     return {
       contents: [
         // TODO: Return the HTML content with metadata
+        // {
+        //   uri: "ui://code-viewer/main",
+        //   mimeType: "text/html;profile=mcp-app",
+        //   text: APP_HTML,
+        //   _meta: {
+        //     ui: {
+        //       csp: {
+        //         connectDomains: [],
+        //         resourceDomains: [],
+        //         frameDomains: [],
+        //         baseUriDomains: [],
+        //       },
+        //       prefersBorder: true,
+        //     },
+        //   },
+        // },
       ],
     };
   }
