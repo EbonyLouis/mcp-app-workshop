@@ -1,6 +1,18 @@
-# MCP App Workshop
+## Hands On MCP App Workshop
 
-Build interactive UIs that run inside goose Desktop using the Model Context Protocol.
+This repository accompanies a hands on workshop on building MCP Apps.
+
+The workshop walks developers through building a complete MCP App from scratch, covering:
+
+- MCP App architecture
+- Tools and UI resources
+- goose Desktop integration
+- Interactive UI patterns
+
+🎥 **Workshop Recording**
+
+[Watch the full workshop session](https://drive.google.com/file/d/1eMCgB0p2cuHyh0HHOtZBFzLJpIgl56VX/view?usp=sharing)
+
 
 ## What We're Building
 
